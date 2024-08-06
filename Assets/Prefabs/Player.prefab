@@ -69,6 +69,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cameraHolder: {fileID: 4244825716270034995}
+  _interactRadius: 1
 --- !u!114 &6297255278699762702
 MonoBehaviour:
   m_ObjectHideFlags: 0

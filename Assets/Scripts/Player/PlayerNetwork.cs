@@ -4,6 +4,7 @@ using Unity.Netcode;
 public class PlayerNetwork : NetworkBehaviour
 {
     [SerializeField] private Transform _cameraHolder;
+    [SerializeField] private float _interactRadius = 2f;
 
     public override void OnNetworkSpawn() {
         if (IsOwner) {
@@ -34,5 +35,12 @@ public class PlayerNetwork : NetworkBehaviour
         xRotation -= mouseDelta.y * 5f;
         // xRotation = Mathf.Clamp(xRotation, -90, 90);
         _cameraHolder.localRotation = Quaternion.Euler(xRotation, 0, 0);
+        
+        
+    }
+    
+    private void OnDrawGizmos() {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, _interactRadius);
     }
 }
