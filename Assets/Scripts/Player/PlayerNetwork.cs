@@ -12,6 +12,9 @@ public class PlayerNetwork : NetworkBehaviour
             mainCamera.gameObject.transform.SetParent(_cameraHolder);
             mainCamera.transform.localPosition = Vector3.zero;
             mainCamera.transform.localRotation = Quaternion.identity;
+            
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
     }
 
@@ -36,7 +39,9 @@ public class PlayerNetwork : NetworkBehaviour
         // xRotation = Mathf.Clamp(xRotation, -90, 90);
         _cameraHolder.localRotation = Quaternion.Euler(xRotation, 0, 0);
         
-        
+        if (Input.GetKeyDown(KeyCode.E)) {
+            
+        }
     }
     
     private void OnDrawGizmos() {
