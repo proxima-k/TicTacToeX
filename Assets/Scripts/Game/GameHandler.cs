@@ -24,12 +24,15 @@ public class GameHandler : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void StartGameServerRpc() {
         // if game is already started, return
-        if (_currentGameState == GameState.InProgress)
+        if (_currentGameState == GameState.InProgress) {
+            Debug.Log("Game already started");
             return;
-        // sets random player to be the first
+        }
         
         _currentGameState = GameState.InProgress;
-        Debug.Log("Game started");
+        Debug.Log("Starting game");
+        
+        // sets random player to be the first
     }
 
     public void IsPlayerTurn(int playerIndex) {
