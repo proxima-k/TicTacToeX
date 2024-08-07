@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class LobbyUI : MonoBehaviour {
+    [SerializeField] private GameObject _lobbyUI;
     [SerializeField] private Button _startHostButton;
     [SerializeField] private Button _startClientButton;
 
@@ -14,9 +15,27 @@ public class LobbyUI : MonoBehaviour {
     }
     
     private void StartHost() {
-        Debug.Log($"Connection: {NetworkManager.Singleton.StartHost()}");
+        if (NetworkManager.Singleton.StartHost()) {
+            Hide();
+            Debug.Log("Host started");
+            return;
+        }
+        Debug.Log("Failed to start host");
     }
     private void StartClient() {
-        Debug.Log($"Connection: {NetworkManager.Singleton.StartClient()}");
+        if (NetworkManager.Singleton.StartClient()) {
+            Hide();
+            Debug.Log("Client started");
+            return;
+        }
+        Debug.Log("Failed to start client");
+    }
+
+    private void Show() {
+        _lobbyUI.SetActive(true);
+    }
+    
+    private void Hide() {
+        _lobbyUI.SetActive(false);
     }
 }

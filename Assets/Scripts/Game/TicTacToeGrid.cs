@@ -2,11 +2,10 @@ using Unity.Netcode;
 using UnityEngine;
 
 public class TicTacToeGrid : NetworkBehaviour {
-    [SerializeField] private float cellSize = 1f;
-    [SerializeField] private Transform testTransform;
-        
     // have events so visual scripts can listen when one of the cell is filled and they can update separately on each client
     // instead of syncing the same object
+    
+    [SerializeField] private float cellSize = 1f;
     
     // 0 = empty
     // 1 = o
@@ -15,9 +14,9 @@ public class TicTacToeGrid : NetworkBehaviour {
 
 
     private void Update() {
-        Debug.Log(GetCellCoords(testTransform.position));
+        // Debug.Log(GetCellCoords(testTransform.position));
     }
-
+    
     // false ownership since we want any client to be able to tell the host to set
     [ServerRpc(RequireOwnership = false)]
     public void SetCellServerRpc(int xCoord, int yCoord, int playerIndex) {
@@ -28,8 +27,6 @@ public class TicTacToeGrid : NetworkBehaviour {
         // call event
         // owner will receive the event and remove the object it's holding
     }
-    
-    
     
     private bool TryGetWinner(int playerIndex) {
         // rows

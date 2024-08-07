@@ -27,7 +27,6 @@ public class PlayerNetwork : NetworkBehaviour
         if (Input.GetKey(KeyCode.A)) moveDir -= transform.right;
         if (Input.GetKey(KeyCode.D)) moveDir += transform.right;
         
-        
         transform.position += moveDir.normalized * Time.deltaTime * 5f;
         
         // camera rotation
@@ -40,7 +39,21 @@ public class PlayerNetwork : NetworkBehaviour
         _cameraHolder.localRotation = Quaternion.Euler(xRotation, 0, 0);
         
         if (Input.GetKeyDown(KeyCode.E)) {
+            Debug.Log("Interact");
+            Interact();
+        }
+    }
+
+    private void Interact() {
+        Collider[] colliders = Physics.OverlapSphere(transform.position, _interactRadius);
+        foreach (Collider collider in colliders) {
+            // get componentinparent so we can interact with the parent object
+            IInteractable interactable = collider.GetComponentInParent<IInteractable>();
+
+            if (interactable == null) 
+                continue;
             
+            interactable.Interact();
         }
     }
     
