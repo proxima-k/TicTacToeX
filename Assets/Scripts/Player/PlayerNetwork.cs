@@ -22,7 +22,7 @@ public class PlayerNetwork : NetworkBehaviour
 
     private void Update() {
         if (!IsOwner) return;
-
+        
         Vector3 moveDir = Vector3.zero;
         if (Input.GetKey(KeyCode.W)) moveDir += transform.forward;
         if (Input.GetKey(KeyCode.S)) moveDir -= transform.forward;

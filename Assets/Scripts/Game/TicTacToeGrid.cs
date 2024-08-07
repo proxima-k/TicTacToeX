@@ -1,3 +1,4 @@
+using System;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -8,59 +9,76 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // instead of syncing the same object
     
     // on reset event
-    // on place down mark event
     // on win event
+    // on place down mark event
+    public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
+    public class OnMarkPlacedEventArgs : EventArgs {
+        public int xCoord, yCoord, playerIndex;
+    }
     
     [SerializeField] private float cellSize = 1f;
     [SerializeField] private Transform _visualBox;
     
     // 0 = empty
-    // 1 = o
-    // 2 = x
+    // 1 & 2 = players' mark
     private int[,] _grid = new int[3, 3];
 
-
     public void Interact(GameObject interactor) {
+        // if interactor is a player
+        if (!interactor.TryGetComponent(out PlayerNetwork playerNetwork))
+            return;
+        
         Vector3 interactorPosition = interactor.transform.position;
         Vector2Int coords = GetCellCoords(interactorPosition);
         if (IsCoordsOutOfBounds(coords.x, coords.y))
             return;
         
         // get player data from interactor
-        // if interactor is a player
-        SetCellServerRpc(coords.x, coords.y, 1);
+        SetCellServerRpc(coords.x, coords.y, (int) playerNetwork.OwnerClientId + 1);
     }
     
     // false ownership since we want any client to be able to tell the host to set
     [ServerRpc(RequireOwnership = false)]
     public void SetCellServerRpc(int xCoord, int yCoord, int playerIndex) {
+        // check current game state
+        
         if (_grid[xCoord, yCoord] != 0)
             return;
 
         _grid[xCoord, yCoord] = playerIndex;
+        SetCellClientRpc(xCoord, yCoord, playerIndex);
         // call event
         // owner will receive the event and remove the object it's holding
     }
+
+    [ClientRpc]
+    private void SetCellClientRpc(int xCoord, int yCoord, int playerIndex) {
+        // if server, in this case a host, ignore since server already has updated the method
+        if (IsServer || IsHost)
+            return;
+        
+        _grid[xCoord, yCoord] = playerIndex;
+    }
     
+    
+    // TODO: 
     private bool TryGetWinner(int playerIndex) {
         // rows
         for (int i = 0; i < 3; i++) 
             if (IsPlayer(playerIndex, i, 0) && (_grid[i, 0] + _grid[i, 1] + _grid[i, 2]) % 3 == 0)
                 return true;
-        
         // columns
         for (int i = 0; i < 3; i++) 
             if (IsPlayer(playerIndex, 0, i) && (_grid[0, i] + _grid[1, i] + _grid[2, i]) % 3 == 0)
                 return true;
-
+        
         // top left to bottom right
         if (IsPlayer(playerIndex, 0, 0) && (_grid[0, 0] + _grid[1, 1] + _grid[2, 2]) % 3 == 0)
             return true;
-        
         // top right to bottom left
         if (IsPlayer(playerIndex, 0, 0) && (_grid[0, 2] + _grid[1, 1] + _grid[2, 0]) % 3 == 0)
             return true;
-
+        
         return false;
     }
     
