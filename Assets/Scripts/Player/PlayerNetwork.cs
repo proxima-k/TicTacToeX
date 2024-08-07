@@ -11,6 +11,7 @@ public class PlayerNetwork : NetworkBehaviour
     [SerializeField] private float _moveSpeed = 3.5f;
     [SerializeField] private float _interactRadius = 2f;
 
+    
     private Vector3 _moveDir;
     // holds player data
 
@@ -43,6 +44,7 @@ public class PlayerNetwork : NetworkBehaviour
         float xRotation = _cameraHolder.localEulerAngles.x;
         xRotation -= mouseDelta.y * 5f;
         // xRotation = Mathf.Clamp(xRotation, -90, 90);
+        
         _cameraHolder.localRotation = Quaternion.Euler(xRotation, _cameraHolder.eulerAngles.y + mouseDelta.x * 5f, 0);
         
         

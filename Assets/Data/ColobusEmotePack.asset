@@ -13,6 +13,21 @@ MonoBehaviour:
   m_Name: ColobusEmotePack
   m_EditorClassIdentifier: 
   Emotes:
-  - AnimationName: Spin
+  - AnimationNames:
+    - Base Layer.Spin
+    - Shapekey.Eyes_Sad
     Loop: 1
     LoopAmount: 3
+  - AnimationNames:
+    - Shapekey.Eyes_Cry
+    Loop: 1
+    LoopAmount: 5
+  - AnimationNames:
+    - Shapekey.Eyes_Happy
+    Loop: 1
+    LoopAmount: 5
+  - AnimationNames:
+    - Base Layer.Death
+    - Shapekey.Eyes_Dead
+    Loop: 0
+    LoopAmount: 5

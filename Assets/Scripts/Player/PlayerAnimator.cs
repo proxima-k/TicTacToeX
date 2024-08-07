@@ -25,7 +25,17 @@ public class PlayerAnimator : NetworkBehaviour
 
         
         if (Input.GetKeyDown(KeyCode.Alpha1)) {
-            PlayEmote(_emotePack.Emotes[0]);
+            if (_emotePack.Emotes.Count > 0)
+                PlayEmote(_emotePack.Emotes[0]);
+        } else if (Input.GetKeyDown(KeyCode.Alpha2)) {
+            if (_emotePack.Emotes.Count > 1)
+                PlayEmote(_emotePack.Emotes[1]);
+        } else if (Input.GetKeyDown(KeyCode.Alpha3)) {
+            if (_emotePack.Emotes.Count > 2) 
+                PlayEmote(_emotePack.Emotes[2]);
+        } else if (Input.GetKeyDown(KeyCode.Alpha4)) {
+            if (_emotePack.Emotes.Count > 3)
+                PlayEmote(_emotePack.Emotes[3]);
         }
         
         if (IsEmoting())
@@ -51,12 +61,15 @@ public class PlayerAnimator : NetworkBehaviour
     private IEnumerator PlayEmoteCoroutine(Emote emote) {
         _animator.SetBool(IS_EMOTING, true);
         
-        _animator.Play(emote.AnimationName);
+        foreach (string animationName in emote.AnimationNames) {
+            _animator.Play(animationName);
+        }
         // get the length of the animation clip
         float clipLength = _animator.GetCurrentAnimatorClipInfo(0)[0].clip.length;
         yield return new WaitForSeconds(clipLength * emote.LoopAmount);
         
-        _animator.CrossFade("Base Layer.Idle_A", 0.15f);
+        _animator.CrossFade("Base Layer.Idle_A", 0.35f);
+        _animator.CrossFade("Shapekey.Eyes_Blink", 0.15f);
         // _animator.Play("Idle");
         _emoteCoroutine = null;
     }

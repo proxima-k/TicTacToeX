@@ -99,9 +99,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _cameraHolder: {fileID: 4244825716270034995}
-  _cameraDistance: 2
+  _cameraDistance: 2.75
   _model: {fileID: 8690904587429709619}
-  _moveSpeed: 3.5
+  _moveSpeed: 3
   _interactRadius: 1.37
 --- !u!1 &3419227444116068900
 GameObject:
@@ -143,6 +143,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8690904587429709619}
+  - component: {fileID: 472995702915716732}
   m_Layer: 0
   m_Name: Model
   m_TagString: Untagged
@@ -166,6 +167,36 @@ Transform:
   - {fileID: 4818437341922148737}
   m_Father: {fileID: 5904639944865662247}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &472995702915716732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4386499542383203438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ece0820f62a980f42a2fce62f0a62646, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SyncPositionX: 0
+  SyncPositionY: 0
+  SyncPositionZ: 0
+  SyncRotAngleX: 0
+  SyncRotAngleY: 1
+  SyncRotAngleZ: 0
+  SyncScaleX: 0
+  SyncScaleY: 0
+  SyncScaleZ: 0
+  PositionThreshold: 0.001
+  RotAngleThreshold: 0.01
+  ScaleThreshold: 0.01
+  UseQuaternionSynchronization: 0
+  UseQuaternionCompression: 0
+  UseHalfFloatPrecision: 0
+  InLocalSpace: 0
+  Interpolate: 1
+  SlerpPosition: 0
 --- !u!1001 &546993955446197347
 PrefabInstance:
   m_ObjectHideFlags: 0
