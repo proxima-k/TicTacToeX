@@ -1,9 +1,13 @@
+using System;
 using UnityEngine;
 using Unity.Netcode;
 
 public class PlayerNetwork : NetworkBehaviour
 {
     [SerializeField] private Transform _cameraHolder;
+    [SerializeField] private float _cameraDistance = 2f;
+    [SerializeField] private Transform _model;
+    
     [SerializeField] private float _moveSpeed = 3.5f;
     [SerializeField] private float _interactRadius = 2f;
 
@@ -14,7 +18,7 @@ public class PlayerNetwork : NetworkBehaviour
         if (IsOwner) {
             Camera mainCamera = Camera.main;
             mainCamera.gameObject.transform.SetParent(_cameraHolder);
-            mainCamera.transform.localPosition = Vector3.zero;
+            mainCamera.transform.localPosition = new Vector3(0, 0, -_cameraDistance);
             mainCamera.transform.localRotation = Quaternion.identity;
             
             Cursor.lockState = CursorLockMode.Locked;
@@ -24,23 +28,28 @@ public class PlayerNetwork : NetworkBehaviour
 
     private void Update() {
         if (!IsOwner) return;
+
         
-        _moveDir = Vector3.zero;
-        if (Input.GetKey(KeyCode.W)) _moveDir += transform.forward;
-        if (Input.GetKey(KeyCode.S)) _moveDir -= transform.forward;
-        if (Input.GetKey(KeyCode.A)) _moveDir -= transform.right;
-        if (Input.GetKey(KeyCode.D)) _moveDir += transform.right;
+        // player movement
+        Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+        Vector3 forward = Vector3.Cross(_cameraHolder.right, Vector3.up).normalized;
+        Vector3 right = _cameraHolder.right;
+        _moveDir = Vector3.Normalize(forward * input.y + right * input.x);
+        transform.position += _moveDir * Time.deltaTime * _moveSpeed;
         
-        transform.position += _moveDir.normalized * Time.deltaTime * _moveSpeed;
         
         // camera rotation
         Vector2 mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
-        transform.rotation = Quaternion.Euler(0, transform.eulerAngles.y + mouseDelta.x * 5f, 0);
-        
         float xRotation = _cameraHolder.localEulerAngles.x;
         xRotation -= mouseDelta.y * 5f;
         // xRotation = Mathf.Clamp(xRotation, -90, 90);
-        _cameraHolder.localRotation = Quaternion.Euler(xRotation, 0, 0);
+        _cameraHolder.localRotation = Quaternion.Euler(xRotation, _cameraHolder.eulerAngles.y + mouseDelta.x * 5f, 0);
+        
+        
+        // move direction
+        if (_moveDir != Vector3.zero) {
+            _model.forward = Vector3.Slerp(_model.forward, _moveDir, 6f * Time.deltaTime);
+        }
         
         if (Input.GetKeyDown(KeyCode.E)) {
             Debug.Log("Interact");
