@@ -4,8 +4,10 @@ using Unity.Netcode;
 public class PlayerNetwork : NetworkBehaviour
 {
     [SerializeField] private Transform _cameraHolder;
+    [SerializeField] private float _moveSpeed = 3.5f;
     [SerializeField] private float _interactRadius = 2f;
-    
+
+    private Vector3 _moveDir;
     // holds player data
 
     public override void OnNetworkSpawn() {
@@ -23,13 +25,13 @@ public class PlayerNetwork : NetworkBehaviour
     private void Update() {
         if (!IsOwner) return;
         
-        Vector3 moveDir = Vector3.zero;
-        if (Input.GetKey(KeyCode.W)) moveDir += transform.forward;
-        if (Input.GetKey(KeyCode.S)) moveDir -= transform.forward;
-        if (Input.GetKey(KeyCode.A)) moveDir -= transform.right;
-        if (Input.GetKey(KeyCode.D)) moveDir += transform.right;
+        _moveDir = Vector3.zero;
+        if (Input.GetKey(KeyCode.W)) _moveDir += transform.forward;
+        if (Input.GetKey(KeyCode.S)) _moveDir -= transform.forward;
+        if (Input.GetKey(KeyCode.A)) _moveDir -= transform.right;
+        if (Input.GetKey(KeyCode.D)) _moveDir += transform.right;
         
-        transform.position += moveDir.normalized * Time.deltaTime * 5f;
+        transform.position += _moveDir.normalized * Time.deltaTime * _moveSpeed;
         
         // camera rotation
         Vector2 mouseDelta = new Vector2(Input.GetAxis("Mouse X"), Input.GetAxis("Mouse Y"));
@@ -58,9 +60,14 @@ public class PlayerNetwork : NetworkBehaviour
             interactable.Interact(this.gameObject);
         }
     }
+
+    public bool IsWalking() {
+        return _moveDir != Vector3.zero;
+    }
     
     private void OnDrawGizmos() {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, _interactRadius);
     }
+    
 }
