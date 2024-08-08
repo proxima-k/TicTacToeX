@@ -8,13 +8,15 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // on reset event
     // on place down mark event
     public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
-    public class OnMarkPlacedEventArgs : EventArgs { public int xCoord, yCoord, playerID; }
+    public class OnMarkPlacedEventArgs : EventArgs { public int xCoord, yCoord, playerIndex; }
 
     public event EventHandler<OnGameStartedEventArgs> OnGameStarted;
     public class OnGameStartedEventArgs : EventArgs { public int playerOneID, playerTwoID; }
     
-    public event EventHandler OnGameEnded;
+    public event EventHandler<OnPlayerOneRegisteredEventArgs> OnPlayerOneRegistered;
+    public class OnPlayerOneRegisteredEventArgs : EventArgs { public int markIndex; }
     
+    public event EventHandler OnGameEnded;
     public event EventHandler OnGridReset;
     
     [SerializeField] private float cellSize = 1f;
@@ -34,6 +36,10 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     private int _currentPlayerIndex = -1;
     private int _currentTurn = 0;
     
+    private int _playerRegisteredCount = 0;
+    private int _previousRegisteredPlayerID = -1;
+    private int _playerOneMarkIndex = 0;
+    
     private bool _isGameInProgress => _currentPlayerIndex != -1;
     private bool _isFocused = false;
     private Transform _playerTransform;
@@ -44,6 +50,57 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
 
     private void Update() {
         Highlight();
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RegisterPlayerServerRpc(int markIndex, ServerRpcParams serverRpcParams = default) {
+        if (_playerRegisteredCount >= 2) {
+            Debug.Log("Already 2 players registered");
+            return;
+        }
+        
+        if (_previousRegisteredPlayerID == (int) serverRpcParams.Receive.SenderClientId) {
+            Debug.Log("Player already registered");
+            return;
+        }
+        
+
+        if (_playerRegisteredCount == 0) {
+            _playerOneMarkIndex = markIndex;
+        } else if (_playerRegisteredCount == 1) {
+            if (markIndex == _playerOneMarkIndex) {
+                Debug.Log("Player 2 cannot have the same mark as Player 1");
+                return;
+            }
+        }
+        
+        _playerIDs[_playerRegisteredCount] = (int) serverRpcParams.Receive.SenderClientId;
+        _previousRegisteredPlayerID = (int) serverRpcParams.Receive.SenderClientId;
+        
+        _playerRegisteredCount++;
+        
+        Debug.Log($"Player {_playerRegisteredCount} registered");
+        
+        if (_playerRegisteredCount == 2) {
+            RegisterPlayerOneClientRpc(_playerOneMarkIndex);
+            StartGameServerRpc();
+        }
+    }
+    
+    [ClientRpc]
+    private void RegisterPlayerOneClientRpc(int markIndex) {
+        _playerOneMarkIndex = markIndex;
+        OnPlayerOneRegistered?.Invoke(this, new OnPlayerOneRegisteredEventArgs {markIndex = markIndex});
+    }
+    
+    [ServerRpc(RequireOwnership = false)]
+    public void ResetGameServerRpc() {
+        ResetGrid();
+        _playerRegisteredCount = 0;
+        _previousRegisteredPlayerID = -1;
+        
+        _currentPlayerIndex = -1;
+        UpdateCurrentPlayerClientRpc(_currentPlayerIndex);
     }
 
     public void Interact(GameObject interactor) {
@@ -81,9 +138,9 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
 
         _grid[xCoord, yCoord] = playerID;
         MarkCellClientRpc(xCoord, yCoord, playerID);
-        _currentTurn++;
+        OnMarkPlaced?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerIndex = _currentPlayerIndex});
         
-        OnMarkPlaced?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerID = playerID});
+        _currentTurn++;
         
         // check if player won
         if (TryGetWinner(playerID)) {
@@ -108,7 +165,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
             return;
         
         _grid[xCoord, yCoord] = playerID;
-        OnMarkPlaced?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerID = playerID});
+        OnMarkPlaced?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerIndex = _currentPlayerIndex});
     }
     
     private bool TryGetWinner(int playerID) {
@@ -144,9 +201,6 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
             if (i == 2)
                 return true;
         }
-        
-        // todo: check for draw
-        
         return false;
     }
     
@@ -161,12 +215,6 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
             Debug.Log("Not enough players to start the game");
             return;
         }
-        
-        ulong playerOneID = NetworkManager.Singleton.ConnectedClientsList[0].ClientId;
-        ulong playerTwoID = NetworkManager.Singleton.ConnectedClientsList[1].ClientId;
-        
-        _playerIDs[0] = (int) playerOneID;
-        _playerIDs[1] = (int) playerTwoID;
         
         _currentPlayerIndex = 0;
         _currentTurn = 0;
@@ -255,6 +303,22 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     
     private bool IsPlayerTurn(int playerID) {
         return _playerIDs[_currentPlayerIndex] == playerID;
+    }
+    
+    public int GetPlayerID(int playerIndex) {
+        return _playerIDs[playerIndex];
+    }
+    
+    public int GetCurrentPlayerID() {
+        return _playerIDs[_currentPlayerIndex];
+    }
+    
+    public int GetPlayerIndex(int playerID) {
+        for (int i = 0; i < 2; i++) {
+            if (_playerIDs[i] == playerID)
+                return i;
+        }
+        return -1;
     }
     
     private Vector2Int ClampCellCoords(Vector2Int coords) {
