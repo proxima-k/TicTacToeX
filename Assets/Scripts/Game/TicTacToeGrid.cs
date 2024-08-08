@@ -11,7 +11,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // on reset event
     // on win event
     // on place down mark event
-    public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
+    public event EventHandler<OnMarkPlacedEventArgs> OnCellMarked;
     public class OnMarkPlacedEventArgs : EventArgs {
         public int xCoord, yCoord, playerIndex;
     }
@@ -21,7 +21,21 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     
     // 0 = empty
     // 1 & 2 = players' mark
-    private int[,] _grid = new int[3, 3];
+    [SerializeField] private int[,] _grid = 
+    new int[3, 3] {
+        {-1, -1, -1},
+        {-1, -1, -1},
+        {-1, -1, -1}
+    };
+    
+    private int[] _playerIDs = new int[2];
+    private int _currentPlayerIndex = -1;
+    
+    private bool GameInProgress => _currentPlayerIndex != -1;
+
+    private void Awake() {
+        ResetGrid();
+    }
 
     public void Interact(GameObject interactor) {
         // if interactor is a player
@@ -34,56 +48,130 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
             return;
         
         // get player data from interactor
-        SetCellServerRpc(coords.x, coords.y, (int) playerNetwork.OwnerClientId + 1);
+        MarkCellServerRpc(coords.x, coords.y, (int) playerNetwork.OwnerClientId);
     }
     
     // false ownership since we want any client to be able to tell the host to set
     [ServerRpc(RequireOwnership = false)]
-    public void SetCellServerRpc(int xCoord, int yCoord, int playerIndex) {
-        // check current game state
-        
-        if (_grid[xCoord, yCoord] != 0)
+    public void MarkCellServerRpc(int xCoord, int yCoord, int playerID) {
+        if (!GameInProgress) {
+            Debug.Log("Game has not started yet");
             return;
+        }
+        
+        if (!IsPlayerTurn(playerID)) {
+            Debug.Log($"Current player is {_currentPlayerIndex} but player {playerID} tried to mark a cell");
+            return;
+        }
 
-        _grid[xCoord, yCoord] = playerIndex;
-        SetCellClientRpc(xCoord, yCoord, playerIndex);
+        if (!IsCellEmpty(xCoord, yCoord)) {
+            Debug.Log($"Cell ({xCoord}, {yCoord}) is already filled");
+            return;
+        }
+
+        _grid[xCoord, yCoord] = playerID;
+        MarkCellClientRpc(xCoord, yCoord, playerID);
         // call event
         // owner will receive the event and remove the object it's holding
+        
+        OnCellMarked?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerIndex = playerID});
+        
+        // check if player won
+        if (TryGetWinner(playerID)) {
+            // call win event
+            Debug.Log($"Player {playerID} won");
+            EndGame();
+            return;
+        }
+        
+        NextPlayer();
     }
 
     [ClientRpc]
-    private void SetCellClientRpc(int xCoord, int yCoord, int playerIndex) {
+    private void MarkCellClientRpc(int xCoord, int yCoord, int playerID) {
         // if server, in this case a host, ignore since server already has updated the method
         if (IsServer || IsHost)
             return;
         
-        _grid[xCoord, yCoord] = playerIndex;
+        _grid[xCoord, yCoord] = playerID;
     }
     
-    
-    // TODO: 
-    private bool TryGetWinner(int playerIndex) {
+    // TODO: if check is wrong
+    private bool TryGetWinner(int playerID) {
         // rows
-        for (int i = 0; i < 3; i++) 
-            if (IsPlayer(playerIndex, i, 0) && (_grid[i, 0] + _grid[i, 1] + _grid[i, 2]) % 3 == 0)
-                return true;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (!IsCellPlayer(playerID, i, j))
+                    break;
+                if (j == 2)
+                    return true;
+            }            
+        }
         // columns
-        for (int i = 0; i < 3; i++) 
-            if (IsPlayer(playerIndex, 0, i) && (_grid[0, i] + _grid[1, i] + _grid[2, i]) % 3 == 0)
-                return true;
-        
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (!IsCellPlayer(playerID, j, i))
+                    break;
+                if (j == 2)
+                    return true;
+            }            
+        }
         // top left to bottom right
-        if (IsPlayer(playerIndex, 0, 0) && (_grid[0, 0] + _grid[1, 1] + _grid[2, 2]) % 3 == 0)
-            return true;
+        for (int i = 0; i < 3; i++) {
+            if (!IsCellPlayer(playerID, i, i))
+                break;
+            if (i == 2)
+                return true;
+        }
         // top right to bottom left
-        if (IsPlayer(playerIndex, 0, 0) && (_grid[0, 2] + _grid[1, 1] + _grid[2, 0]) % 3 == 0)
-            return true;
+        for (int i = 0; i < 3; i++) {
+            if (!IsCellPlayer(playerID, i, 2 - i))
+                break;
+            if (i == 2)
+                return true;
+        }
         
         return false;
     }
     
+    [ServerRpc(RequireOwnership = false)]
+    public void StartGameServerRpc() {
+        if (GameInProgress) {
+            Debug.Log("Game has already started");
+            return;
+        }
+        
+        if (NetworkManager.Singleton.ConnectedClientsList.Count < 2) {
+            Debug.Log("Not enough players to start the game");
+            return;
+        }
+        
+        ulong playerOneID = NetworkManager.Singleton.ConnectedClientsList[0].ClientId;
+        ulong playerTwoID = NetworkManager.Singleton.ConnectedClientsList[1].ClientId;
+        
+        _playerIDs[0] = (int) playerOneID;
+        _playerIDs[1] = (int) playerTwoID;
+        
+        _currentPlayerIndex = 0;
+        ResetGrid();
+        Debug.Log("Game is starting!");
+    }
+    
+    private void NextPlayer() {
+        _currentPlayerIndex = (_currentPlayerIndex + 1) % 2;
+    }
+
+    private void EndGame() {
+        _currentPlayerIndex = -1;
+    }
+    
     public void ResetGrid() {
         _grid = new int[3, 3];
+        for (int x = 0; x < 3; x++) {
+            for (int y = 0; y < 3; y++) {
+                _grid[x, y] = -1;
+            }
+        }
     }
     
 
@@ -105,12 +193,20 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         return GetCellCenter((int) coords.x, (int) coords.y);
     }
     
-    private bool IsPlayer(int playerIndex, int xCoord, int yCoord) {
-        return _grid[xCoord, yCoord] == playerIndex;
+    private bool IsCellEmpty(int xCoord, int yCoord) {
+        return _grid[xCoord, yCoord] == -1;
+    }
+    
+    private bool IsCellPlayer(int playerID, int xCoord, int yCoord) {
+        return _grid[xCoord, yCoord] == playerID;
     }
     
     private bool IsCoordsOutOfBounds(int xCoord, int yCoord) {
         return xCoord < 0 || xCoord >= 3 || yCoord < 0 || yCoord >= 3;
+    }
+    
+    private bool IsPlayerTurn(int playerID) {
+        return _playerIDs[_currentPlayerIndex] == playerID;
     }
     
 
@@ -135,11 +231,11 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
-                if (_grid[x, y] == 1) {
+                if (_grid[x, y] == 0) {
                     Gizmos.color = Color.red;
                     Gizmos.DrawSphere(new Vector3(x * cellSize + cellSize/2, 0, y * cellSize + cellSize/2) + transform.position - offset, 0.2f);
                 }
-                else if (_grid[x, y] == 2) {
+                else if (_grid[x, y] == 1) {
                     Gizmos.color = Color.blue;
                     Gizmos.DrawSphere(new Vector3(x * cellSize + cellSize/2, 0, y * cellSize + cellSize/2) + transform.position - offset, 0.2f);
                 }

@@ -12,6 +12,10 @@ public class GameHandler : NetworkBehaviour
     }
     public GameState CurrentGameState => _currentGameState;
     private GameState _currentGameState = GameState.WaitingForPlayers;
+
+    private int[] _playerIDs = new int[2];
+    
+    private int _currentPlayerIndex = 0;
     
     private void Awake() {
         if (Instance != null) {
@@ -35,7 +39,7 @@ public class GameHandler : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void StartGameServerRpc() {
+    public void StartGameServerRpc(ulong playerOneID, ulong playerTwoID) {
         // if game is already started, return
         if (_currentGameState == GameState.InProgress) {
             Debug.Log("Game already started");
@@ -45,12 +49,15 @@ public class GameHandler : NetworkBehaviour
         _currentGameState = GameState.InProgress;
         Debug.Log("Starting game");
         
+        _playerIDs[0] = (int) playerOneID;
+        _playerIDs[1] = (int) playerTwoID;
+        
         // binds two players to a match with their player data
         // sets random player to be the first
     }
 
-    public void IsPlayerTurn(int playerIndex) {
-        // check if it's the player's turn
+    public bool IsPlayerTurn(int playerIndex) {
+        return _currentPlayerIndex == playerIndex;
     }
     
     private void EndGame() {

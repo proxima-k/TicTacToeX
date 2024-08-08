@@ -8,11 +8,13 @@ public class PlayerNetwork : NetworkBehaviour
     [SerializeField] private float _cameraDistance = 2f;
     [SerializeField] private Transform _model;
     
+    [SerializeField] private Transform _objectHolder;
+        
     [SerializeField] private float _moveSpeed = 3.5f;
     [SerializeField] private float _interactRadius = 2f;
-
     
     private Vector3 _moveDir;
+    private bool _isHoldingObject;
     // holds player data
 
     public override void OnNetworkSpawn() {
@@ -54,7 +56,7 @@ public class PlayerNetwork : NetworkBehaviour
         }
         
         if (Input.GetKeyDown(KeyCode.E)) {
-            Debug.Log("Interact");
+            // Debug.Log("Interact");
             Interact();
         }
     }
@@ -69,9 +71,46 @@ public class PlayerNetwork : NetworkBehaviour
                 continue;
             
             interactable.Interact(this.gameObject);
+            return;
         }
     }
 
+    // [ServerRpc]
+    // public void AttachObjectServerRpc(ulong childNetworkObjectID) {
+    //     
+    //     NetworkObject childNetworkObject = NetworkManager.Singleton.SpawnManager.SpawnedObjects[childNetworkObjectID];
+    //     
+    //     if (childNetworkObject == null) {
+    //         Debug.LogError("NetworkObject not found");
+    //         return;
+    //     }
+    //     
+    //     if (_isHoldingObject) {
+    //         Debug.LogError("Player is already holding an object");
+    //         return;
+    //     }
+    //     
+    //     childNetworkObject.transform.SetParent(_objectHolder);
+    //     
+    //     // objectTransform.SetParent(_objectHolder);
+    //     // objectTransform.localPosition = Vector3.zero;
+    //     // objectTransform.localRotation = Quaternion.identity;
+    //     _isHoldingObject = true;
+    // }
+    //
+    // public Transform DetachObject() {
+    //     if (!_isHoldingObject) {
+    //         Debug.LogError("Player is not holding an object");
+    //         return null;
+    //     }
+    //     
+    //     Transform objectTransform = _objectHolder.GetChild(0);
+    //     objectTransform.SetParent(null);
+    //     _isHoldingObject = false;
+    //     
+    //     return objectTransform;
+    // }
+    
     public bool IsWalking() {
         return _moveDir != Vector3.zero;
     }
