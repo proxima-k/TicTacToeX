@@ -5,15 +5,15 @@ using UnityEngine;
 public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // potentially make a scalable grid with different width and height
     
-    // have events so visual scripts can listen when one of the cell is filled and they can update separately on each client
-    // instead of syncing the same object
-    
     // on reset event
     // on place down mark event
     public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
-    public class OnMarkPlacedEventArgs : EventArgs {
-        public int xCoord, yCoord, playerID;
-    }
+    public class OnMarkPlacedEventArgs : EventArgs { public int xCoord, yCoord, playerID; }
+
+    public event EventHandler<OnGameStartedEventArgs> OnGameStarted;
+    public class OnGameStartedEventArgs : EventArgs { public int playerOneID, playerTwoID; }
+    
+    public event EventHandler OnGameEnded;
     
     public event EventHandler OnGridReset;
     
@@ -21,8 +21,8 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     [SerializeField] private Transform _visualBox;
     [SerializeField] private Transform _highlightBox;
     
-    // 0 = empty
-    // 1 & 2 = players' mark
+    // -1 = empty
+    // players' ID = players' mark
     [SerializeField] private int[,] _grid = 
     new int[3, 3] {
         {-1, -1, -1},
@@ -59,15 +59,6 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         
         // get player data from interactor
         MarkCellServerRpc(coords.x, coords.y, (int) playerNetwork.OwnerClientId);
-    }
-
-    public void Focus(GameObject interactor) {
-        _isFocused = true;
-        _playerTransform = interactor.transform;
-    }
-    
-    public void Unfocus(GameObject interactor) {
-        _isFocused = false;
     }
     
     // false ownership since we want any client to be able to tell the host to set
@@ -182,6 +173,15 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         ResetGrid();
         Debug.Log("Game is starting!");
         UpdateCurrentPlayerClientRpc(_currentPlayerIndex);
+        StartGameClientRpc(_playerIDs[0], _playerIDs[1]);
+    }
+    
+    [ClientRpc]
+    public void StartGameClientRpc(int playerOneID, int playerTwoID) {
+        _playerIDs[0] = playerOneID;
+        _playerIDs[1] = playerTwoID;
+        
+        OnGameStarted?.Invoke(this, new OnGameStartedEventArgs {playerOneID = playerOneID, playerTwoID = playerTwoID});
     }
     
     private void NextPlayer() {
@@ -192,6 +192,11 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     [ClientRpc]
     private void UpdateCurrentPlayerClientRpc(int currentPlayerIndex) {
         _currentPlayerIndex = currentPlayerIndex;
+        
+        if (_currentPlayerIndex == -1) {
+            Debug.Log("Game has ended");
+            OnGameEnded?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     private void EndGame() {
@@ -257,6 +262,15 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     }
     
     // Visuals =========================================================================================================
+    public void Focus(GameObject interactor) {
+        _isFocused = true;
+        _playerTransform = interactor.transform;
+    }
+    
+    public void Unfocus(GameObject interactor) {
+        _isFocused = false;
+    }
+    
     private void Highlight() {
         if (!_isGameInProgress) {
             _highlightBox.gameObject.SetActive(false);

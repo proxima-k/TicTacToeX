@@ -12,6 +12,8 @@ public class LobbyUI : MonoBehaviour {
     private void Awake() {
         _startHostButton.onClick.AddListener(StartHost);
         _startClientButton.onClick.AddListener(StartClient);
+        
+        Show();
     }
     
     private void StartHost() {
