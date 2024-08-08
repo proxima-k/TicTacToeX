@@ -8,8 +8,6 @@ public class PlayerNetwork : NetworkBehaviour
     [SerializeField] private float _cameraDistance = 2f;
     [SerializeField] private Transform _model;
     
-    [SerializeField] private Transform _objectHolder;
-        
     [SerializeField] private float _moveSpeed = 3.5f;
     [SerializeField] private float _interactRadius = 2f;
     [SerializeField] private LayerMask _interactLayer;
@@ -34,7 +32,6 @@ public class PlayerNetwork : NetworkBehaviour
 
     private void Update() {
         if (!IsOwner) return;
-
         
         // player movement
         Vector2 input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
@@ -58,14 +55,13 @@ public class PlayerNetwork : NetworkBehaviour
             _model.forward = Vector3.Slerp(_model.forward, _moveDir, 6f * Time.deltaTime);
         }
         
-        GetInteractable();
         
+        // interact with objects
+        GetInteractable();
         if (Input.GetKeyDown(KeyCode.E) && _currentInteractable != null) {
             _currentInteractable.Interact(gameObject);
         }
     }
-
-    
     
     private void GetInteractable() {
         Collider[] colliders = Physics.OverlapSphere(transform.position, _interactRadius, _interactLayer);
@@ -99,49 +95,53 @@ public class PlayerNetwork : NetworkBehaviour
         _currentInteractable = closestInteractable;
     }
 
-    // [ServerRpc]
-    // public void AttachObjectServerRpc(ulong childNetworkObjectID) {
-    //     
-    //     NetworkObject childNetworkObject = NetworkManager.Singleton.SpawnManager.SpawnedObjects[childNetworkObjectID];
-    //     
-    //     if (childNetworkObject == null) {
-    //         Debug.LogError("NetworkObject not found");
-    //         return;
-    //     }
-    //     
-    //     if (_isHoldingObject) {
-    //         Debug.LogError("Player is already holding an object");
-    //         return;
-    //     }
-    //     
-    //     childNetworkObject.transform.SetParent(_objectHolder);
-    //     
-    //     // objectTransform.SetParent(_objectHolder);
-    //     // objectTransform.localPosition = Vector3.zero;
-    //     // objectTransform.localRotation = Quaternion.identity;
-    //     _isHoldingObject = true;
-    // }
-    //
-    // public Transform DetachObject() {
-    //     if (!_isHoldingObject) {
-    //         Debug.LogError("Player is not holding an object");
-    //         return null;
-    //     }
-    //     
-    //     Transform objectTransform = _objectHolder.GetChild(0);
-    //     objectTransform.SetParent(null);
-    //     _isHoldingObject = false;
-    //     
-    //     return objectTransform;
-    // }
     
     public bool IsWalking() {
         return _moveDir != Vector3.zero;
     }
     
+#if UNITY_EDITOR
     private void OnDrawGizmos() {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, _interactRadius);
     }
-    
+#endif
 }
+
+
+// Had issues with parenting objects. Potential future exploration
+// [ServerRpc]
+// public void AttachObjectServerRpc(ulong childNetworkObjectID) {
+//     
+//     NetworkObject childNetworkObject = NetworkManager.Singleton.SpawnManager.SpawnedObjects[childNetworkObjectID];
+//     
+//     if (childNetworkObject == null) {
+//         Debug.LogError("NetworkObject not found");
+//         return;
+//     }
+//     
+//     if (_isHoldingObject) {
+//         Debug.LogError("Player is already holding an object");
+//         return;
+//     }
+//     
+//     childNetworkObject.transform.SetParent(_objectHolder);
+//     
+//     // objectTransform.SetParent(_objectHolder);
+//     // objectTransform.localPosition = Vector3.zero;
+//     // objectTransform.localRotation = Quaternion.identity;
+//     _isHoldingObject = true;
+// }
+//
+// public Transform DetachObject() {
+//     if (!_isHoldingObject) {
+//         Debug.LogError("Player is not holding an object");
+//         return null;
+//     }
+//     
+//     Transform objectTransform = _objectHolder.GetChild(0);
+//     objectTransform.SetParent(null);
+//     _isHoldingObject = false;
+//     
+//     return objectTransform;
+// }
