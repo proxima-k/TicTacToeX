@@ -11,10 +11,12 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // on reset event
     // on win event
     // on place down mark event
-    public event EventHandler<OnMarkPlacedEventArgs> OnCellMarked;
+    public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
     public class OnMarkPlacedEventArgs : EventArgs {
-        public int xCoord, yCoord, playerIndex;
+        public int xCoord, yCoord, playerID;
     }
+    
+    public event EventHandler OnGridReset;
     
     [SerializeField] private float cellSize = 1f;
     [SerializeField] private Transform _visualBox;
@@ -30,6 +32,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     
     private int[] _playerIDs = new int[2];
     private int _currentPlayerIndex = -1;
+    private int _currentTurn = 0;
     
     private bool GameInProgress => _currentPlayerIndex != -1;
 
@@ -71,15 +74,19 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
 
         _grid[xCoord, yCoord] = playerID;
         MarkCellClientRpc(xCoord, yCoord, playerID);
-        // call event
-        // owner will receive the event and remove the object it's holding
+        _currentTurn++;
         
-        OnCellMarked?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerIndex = playerID});
+        OnMarkPlaced?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerID = playerID});
         
         // check if player won
         if (TryGetWinner(playerID)) {
             // call win event
-            Debug.Log($"Player {playerID} won");
+            Debug.Log($"Player {_currentPlayerIndex + 1} won");
+            EndGame();
+            return;
+        } else if (_currentTurn == 9) {
+            // call draw event
+            Debug.Log("Draw");
             EndGame();
             return;
         }
@@ -94,9 +101,9 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
             return;
         
         _grid[xCoord, yCoord] = playerID;
+        OnMarkPlaced?.Invoke(this, new OnMarkPlacedEventArgs {xCoord = xCoord, yCoord = yCoord, playerID = playerID});
     }
     
-    // TODO: if check is wrong
     private bool TryGetWinner(int playerID) {
         // rows
         for (int i = 0; i < 3; i++) {
@@ -131,6 +138,8 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
                 return true;
         }
         
+        // todo: check for draw
+        
         return false;
     }
     
@@ -153,6 +162,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         _playerIDs[1] = (int) playerTwoID;
         
         _currentPlayerIndex = 0;
+        _currentTurn = 0;
         ResetGrid();
         Debug.Log("Game is starting!");
     }
@@ -163,17 +173,25 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
 
     private void EndGame() {
         _currentPlayerIndex = -1;
+        _currentTurn = 0;
     }
     
-    public void ResetGrid() {
+    private void ResetGrid() {
         _grid = new int[3, 3];
         for (int x = 0; x < 3; x++) {
             for (int y = 0; y < 3; y++) {
                 _grid[x, y] = -1;
             }
         }
+        
+        ResetGridClientRpc();
+        OnGridReset?.Invoke(this, EventArgs.Empty);
     }
     
+    [ClientRpc]
+    public void ResetGridClientRpc() {
+        OnGridReset?.Invoke(this, EventArgs.Empty);
+    }
 
     // Getters =========================================================================================================
    

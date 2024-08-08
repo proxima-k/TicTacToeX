@@ -12,6 +12,7 @@ public class PlayerNetwork : NetworkBehaviour
         
     [SerializeField] private float _moveSpeed = 3.5f;
     [SerializeField] private float _interactRadius = 2f;
+    [SerializeField] private LayerMask _interactLayer;
     
     private Vector3 _moveDir;
     private bool _isHoldingObject;
@@ -62,17 +63,23 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
     private void Interact() {
-        Collider[] colliders = Physics.OverlapSphere(transform.position, _interactRadius);
+        Collider[] colliders = Physics.OverlapSphere(transform.position, _interactRadius, _interactLayer);
+        
+        // interact with closest object that is interactable
+        float closestDistance = Mathf.Infinity;
+        IInteractable closestInteractable = null;
+        
         foreach (Collider collider in colliders) {
-            // get componentinparent so we can interact with the parent object
+            float distance = Vector3.Distance(transform.position, collider.ClosestPoint(transform.position));
             IInteractable interactable = collider.GetComponentInParent<IInteractable>();
-
-            if (interactable == null) 
-                continue;
-            
-            interactable.Interact(this.gameObject);
-            return;
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestInteractable = interactable;
+            }
         }
+        
+        Debug.Log(closestInteractable);
+        closestInteractable?.Interact(gameObject);
     }
 
     // [ServerRpc]
