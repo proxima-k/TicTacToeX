@@ -17,6 +17,8 @@ public class PlayerNetwork : NetworkBehaviour
     private Vector3 _moveDir;
     private bool _isHoldingObject;
     // holds player data
+    
+    private IInteractable _currentInteractable;
 
     public override void OnNetworkSpawn() {
         if (IsOwner) {
@@ -56,13 +58,16 @@ public class PlayerNetwork : NetworkBehaviour
             _model.forward = Vector3.Slerp(_model.forward, _moveDir, 6f * Time.deltaTime);
         }
         
-        if (Input.GetKeyDown(KeyCode.E)) {
-            // Debug.Log("Interact");
-            Interact();
+        GetInteractable();
+        
+        if (Input.GetKeyDown(KeyCode.E) && _currentInteractable != null) {
+            _currentInteractable.Interact(gameObject);
         }
     }
 
-    private void Interact() {
+    
+    
+    private void GetInteractable() {
         Collider[] colliders = Physics.OverlapSphere(transform.position, _interactRadius, _interactLayer);
         
         // interact with closest object that is interactable
@@ -78,8 +83,20 @@ public class PlayerNetwork : NetworkBehaviour
             }
         }
         
-        Debug.Log(closestInteractable);
-        closestInteractable?.Interact(gameObject);
+        if (closestInteractable != null) {
+            if (_currentInteractable != closestInteractable) {
+                if (_currentInteractable != null) {
+                    _currentInteractable.Unfocus(gameObject);
+                }
+                closestInteractable.Focus(gameObject);
+            }
+        } else {
+            if (_currentInteractable != null) {
+                _currentInteractable.Unfocus(gameObject);
+            }
+        }
+        
+        _currentInteractable = closestInteractable;
     }
 
     // [ServerRpc]

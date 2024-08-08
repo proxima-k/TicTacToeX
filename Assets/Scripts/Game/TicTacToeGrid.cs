@@ -9,7 +9,6 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // instead of syncing the same object
     
     // on reset event
-    // on win event
     // on place down mark event
     public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
     public class OnMarkPlacedEventArgs : EventArgs {
@@ -20,6 +19,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     
     [SerializeField] private float cellSize = 1f;
     [SerializeField] private Transform _visualBox;
+    [SerializeField] private Transform _highlightBox;
     
     // 0 = empty
     // 1 & 2 = players' mark
@@ -34,10 +34,16 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     private int _currentPlayerIndex = -1;
     private int _currentTurn = 0;
     
-    private bool GameInProgress => _currentPlayerIndex != -1;
+    private bool _isGameInProgress => _currentPlayerIndex != -1;
+    private bool _isFocused = false;
+    private Transform _playerTransform;
 
     private void Awake() {
         ResetGrid();
+    }
+
+    private void Update() {
+        Highlight();
     }
 
     public void Interact(GameObject interactor) {
@@ -47,17 +53,27 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         
         Vector3 interactorPosition = interactor.transform.position;
         Vector2Int coords = GetCellCoords(interactorPosition);
+        coords = ClampCellCoords(coords);
         if (IsCoordsOutOfBounds(coords.x, coords.y))
             return;
         
         // get player data from interactor
         MarkCellServerRpc(coords.x, coords.y, (int) playerNetwork.OwnerClientId);
     }
+
+    public void Focus(GameObject interactor) {
+        _isFocused = true;
+        _playerTransform = interactor.transform;
+    }
+    
+    public void Unfocus(GameObject interactor) {
+        _isFocused = false;
+    }
     
     // false ownership since we want any client to be able to tell the host to set
     [ServerRpc(RequireOwnership = false)]
     public void MarkCellServerRpc(int xCoord, int yCoord, int playerID) {
-        if (!GameInProgress) {
+        if (!_isGameInProgress) {
             Debug.Log("Game has not started yet");
             return;
         }
@@ -145,7 +161,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     
     [ServerRpc(RequireOwnership = false)]
     public void StartGameServerRpc() {
-        if (GameInProgress) {
+        if (_isGameInProgress) {
             Debug.Log("Game has already started");
             return;
         }
@@ -165,15 +181,24 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         _currentTurn = 0;
         ResetGrid();
         Debug.Log("Game is starting!");
+        UpdateCurrentPlayerClientRpc(_currentPlayerIndex);
     }
     
     private void NextPlayer() {
         _currentPlayerIndex = (_currentPlayerIndex + 1) % 2;
+        UpdateCurrentPlayerClientRpc(_currentPlayerIndex);
+    }
+    
+    [ClientRpc]
+    private void UpdateCurrentPlayerClientRpc(int currentPlayerIndex) {
+        _currentPlayerIndex = currentPlayerIndex;
     }
 
     private void EndGame() {
         _currentPlayerIndex = -1;
         _currentTurn = 0;
+        
+        UpdateCurrentPlayerClientRpc(_currentPlayerIndex);
     }
     
     private void ResetGrid() {
@@ -227,6 +252,34 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
         return _playerIDs[_currentPlayerIndex] == playerID;
     }
     
+    private Vector2Int ClampCellCoords(Vector2Int coords) {
+        return new Vector2Int(Mathf.Clamp(coords.x, 0, 2), Mathf.Clamp(coords.y, 0, 2));
+    }
+    
+    // Visuals =========================================================================================================
+    private void Highlight() {
+        if (!_isGameInProgress) {
+            _highlightBox.gameObject.SetActive(false);
+            return;
+        }
+        
+        if (!_isFocused) {
+            _highlightBox.gameObject.SetActive(false);
+            return;
+        }
+        
+        if (_playerTransform == null)
+            return;
+        
+        // set highlight box to the cell that the player is at
+        Vector2Int coords = GetCellCoords(_playerTransform.position);
+        coords = ClampCellCoords(coords);
+        if (IsCoordsOutOfBounds(coords.x, coords.y))
+            return;
+        
+        _highlightBox.position = GetCellCenter(coords.x, coords.y);
+        _highlightBox.gameObject.SetActive(true);
+    }
 
 #if UNITY_EDITOR
     private void OnValidate() {
