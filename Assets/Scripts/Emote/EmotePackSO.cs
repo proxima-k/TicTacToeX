@@ -13,6 +13,6 @@ public class EmotePackSO : ScriptableObject
 [Serializable]
 public class Emote {
     public string[] AnimationNames;
-    public bool Loop;
+    // public bool Loop;
     public float LoopAmount;
 }

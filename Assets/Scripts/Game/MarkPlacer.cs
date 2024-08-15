@@ -8,7 +8,7 @@ public class MarkPlacer : MonoBehaviour
     [SerializeField] private Transform _xMarkPrefab;
     [SerializeField] private Transform _oMarkPrefab;
     
-    // 0 = O, 1 = X
+    // 0 = O mark, 1 = X mark
     private int _playerOneMarkIndex = 0;
     private int _playerTwoMarkIndex = 1;
     
@@ -33,13 +33,12 @@ public class MarkPlacer : MonoBehaviour
     private void OnPlayerOneRegistered(object sender, TicTacToeGrid.OnPlayerOneRegisteredEventArgs e) {
         SetPlayerOneMarkIndex(e.markIndex);
     }
-
-
+    
     private void OnDestroy() {
         _ticTacToeGrid.OnMarkPlaced -= OnMarkPlaced;
     }
 
-    // put 0 for O, 1 for X
+    // 0 for O mark, 1 for X mark
     public void SetPlayerOneMarkIndex(int playerOneMarkIndex) {
         _playerOneMarkIndex = playerOneMarkIndex;
         _playerTwoMarkIndex = playerOneMarkIndex == 0 ? 1 : 0;

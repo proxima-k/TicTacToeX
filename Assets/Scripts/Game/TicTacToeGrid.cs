@@ -5,8 +5,6 @@ using UnityEngine;
 public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // potentially make a scalable grid with different width and height
     
-    // on reset event
-    // on place down mark event
     public event EventHandler<OnMarkPlacedEventArgs> OnMarkPlaced;
     public class OnMarkPlacedEventArgs : EventArgs { public int xCoord, yCoord, playerIndex; }
 
@@ -19,7 +17,7 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     public event EventHandler OnGameEnded;
     public event EventHandler OnGridReset;
     
-    [SerializeField] private float cellSize = 1f;
+    [SerializeField] private float _cellSize = 1f;
     [SerializeField] private Transform _visualBox;
     [SerializeField] private Transform _highlightBox;
     
@@ -274,14 +272,14 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
     // Getters =========================================================================================================
    
     public Vector2Int GetCellCoords(Vector3 position) {
-        Vector3 offset = new Vector3(cellSize * 1.5f, 0, cellSize * 1.5f);
+        Vector3 offset = new Vector3(_cellSize * 1.5f, 0, _cellSize * 1.5f);
         Vector3 relativePosition = position - transform.position + offset;
-        return new Vector2Int((int)Mathf.Floor(relativePosition.x / cellSize), (int)Mathf.Floor(relativePosition.z / cellSize));
+        return new Vector2Int((int)Mathf.Floor(relativePosition.x / _cellSize), (int)Mathf.Floor(relativePosition.z / _cellSize));
     }
     
     public Vector3 GetCellCenter(int xCoord, int yCoord) {
-        Vector3 offset = new Vector3(cellSize * 1.5f, 0, cellSize * 1.5f);
-        return new Vector3(xCoord * cellSize + cellSize/2, 0, yCoord * cellSize + cellSize/2) + transform.position - offset;
+        Vector3 offset = new Vector3(_cellSize * 1.5f, 0, _cellSize * 1.5f);
+        return new Vector3(xCoord * _cellSize + _cellSize/2, 0, yCoord * _cellSize + _cellSize/2) + transform.position - offset;
     }
     
     public Vector3 GetCellCenter(Vector3 position) {
@@ -361,19 +359,19 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
 
 #if UNITY_EDITOR
     private void OnValidate() {
-        _visualBox.localScale = new Vector3(cellSize * 3, 0.1f, cellSize * 3);
+        _visualBox.localScale = new Vector3(_cellSize * 3, 0.1f, _cellSize * 3);
     }
 
     private void OnDrawGizmos() {
         // draw grid where the center cell is at (0, 0, 0)
         Gizmos.color = Color.black;
         
-        Vector3 offset = new Vector3(cellSize * 1.5f, 0, cellSize * 1.5f);
+        Vector3 offset = new Vector3(_cellSize * 1.5f, 0, _cellSize * 1.5f);
         for (int i = 0; i < 4; i++) {
-            Vector3 horizontalStart = new Vector3(0, 0, i * cellSize)           + transform.position - offset;
-            Vector3 horizontalEnd = new Vector3(cellSize * 3, 0, i * cellSize)  + transform.position - offset;
-            Vector3 verticalStart = new Vector3(i * cellSize, 0, 0)             + transform.position - offset;
-            Vector3 verticalEnd = new Vector3(i * cellSize, 0, cellSize * 3)    + transform.position - offset;
+            Vector3 horizontalStart = new Vector3(0, 0, i * _cellSize)           + transform.position - offset;
+            Vector3 horizontalEnd = new Vector3(_cellSize * 3, 0, i * _cellSize)  + transform.position - offset;
+            Vector3 verticalStart = new Vector3(i * _cellSize, 0, 0)             + transform.position - offset;
+            Vector3 verticalEnd = new Vector3(i * _cellSize, 0, _cellSize * 3)    + transform.position - offset;
             Gizmos.DrawLine(horizontalStart, horizontalEnd);
             Gizmos.DrawLine(verticalStart, verticalEnd);
         }
@@ -382,11 +380,11 @@ public class TicTacToeGrid : NetworkBehaviour, IInteractable {
             for (int y = 0; y < 3; y++) {
                 if (_grid[x, y] == 0) {
                     Gizmos.color = Color.red;
-                    Gizmos.DrawSphere(new Vector3(x * cellSize + cellSize/2, 0, y * cellSize + cellSize/2) + transform.position - offset, 0.2f);
+                    Gizmos.DrawSphere(new Vector3(x * _cellSize + _cellSize/2, 0, y * _cellSize + _cellSize/2) + transform.position - offset, 0.2f);
                 }
                 else if (_grid[x, y] == 1) {
                     Gizmos.color = Color.blue;
-                    Gizmos.DrawSphere(new Vector3(x * cellSize + cellSize/2, 0, y * cellSize + cellSize/2) + transform.position - offset, 0.2f);
+                    Gizmos.DrawSphere(new Vector3(x * _cellSize + _cellSize/2, 0, y * _cellSize + _cellSize/2) + transform.position - offset, 0.2f);
                 }
             }
         }

@@ -11,9 +11,6 @@ public class ResetGameButton : MonoBehaviour, IInteractable {
     [SerializeField] private Material _buttonHighlightMaterial;
     
     public void Interact(GameObject interactor) {
-        // _ticTacToeGrid.StartGameServerRpc();
-        
-        // reset game
         _ticTacToeGrid.ResetGameServerRpc();
     }
     

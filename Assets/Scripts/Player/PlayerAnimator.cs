@@ -22,8 +22,8 @@ public class PlayerAnimator : NetworkBehaviour
     private void Update() {
         if (!IsOwner)
             return;
-
         
+        // emote inputs
         if (Input.GetKeyDown(KeyCode.Alpha1)) {
             if (_emotePack.Emotes.Count > 0)
                 PlayEmote(_emotePack.Emotes[0]);
@@ -46,7 +46,6 @@ public class PlayerAnimator : NetworkBehaviour
     }
     
     public void PlayEmote(Emote emote) {
-    
         if (emote == null) {
             Debug.LogError($"Emote {emote} not found in EmotePackSO");
             return;
